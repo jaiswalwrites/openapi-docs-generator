@@ -1,0 +1,823 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  description: |
+    # TaskFlow REST API
+
+    The TaskFlow API lets you manage tasks, projects, and team members programmatically.
+    All API endpoints are authenticated using **Bearer tokens** or **API keys**.
+
+    ## Authentication
+
+    Include your API key in every request:
+    ```
+    Authorization: Bearer YOUR_API_TOKEN
+    ```
+
+    ## Base URL
+
+    ```
+    https://api.taskflow.io/v1
+    ```
+
+    ## Rate Limits
+
+    | Plan     | Requests/minute | Requests/day |
+    |----------|----------------|--------------|
+    | Free     | 30             | 1,000        |
+    | Pro      | 120            | 50,000       |
+    | Business | 500            | Unlimited    |
+
+    ## Response Format
+
+    All responses return JSON. Successful responses wrap data in a `data` key.
+    Errors follow [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details format.
+
+    ## Changelog
+
+    - **v1.2.0** — Added Webhooks support
+    - **v1.1.0** — Added bulk operations for tasks
+    - **v1.0.0** — Initial release
+
+  version: 1.2.0
+  contact:
+    name: API Support
+    url: https://taskflow.io/support
+    email: api@taskflow.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.taskflow.io/v1
+    description: Production
+  - url: https://sandbox.taskflow.io/v1
+    description: Sandbox (no real data)
+
+tags:
+  - name: Authentication
+    description: Obtain and manage API tokens
+  - name: Tasks
+    description: Create, read, update, and delete tasks
+  - name: Projects
+    description: Manage projects and their members
+  - name: Users
+    description: User profile and team management
+  - name: Webhooks
+    description: Subscribe to real-time event notifications
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ─── AUTH ────────────────────────────────────────────────────
+  /auth/token:
+    post:
+      tags: [Authentication]
+      summary: Obtain an API token
+      description: |
+        Authenticate with your email and password to receive a short-lived access token
+        and a refresh token. Access tokens expire after **60 minutes**.
+      operationId: createToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: manish@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "••••••••"
+            example:
+              email: manish@example.com
+              password: "securePassword123"
+      responses:
+        '200':
+          description: Token pair created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxMjN9.abc123"
+                refresh_token: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4"
+                expires_in: 3600
+                token_type: "Bearer"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # ─── TASKS ───────────────────────────────────────────────────
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List all tasks
+      description: |
+        Returns a paginated list of tasks for the authenticated user.
+        Use `status`, `assignee_id`, or `project_id` to filter results.
+      operationId: listTasks
+      parameters:
+        - name: status
+          in: query
+          description: Filter by task status
+          schema:
+            type: string
+            enum: [todo, in_progress, done, archived]
+          example: in_progress
+        - name: project_id
+          in: query
+          description: Filter by project ID
+          schema:
+            type: integer
+          example: 42
+        - name: assignee_id
+          in: query
+          description: Filter by assigned user ID
+          schema:
+            type: integer
+          example: 7
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          example: 1
+        - name: per_page
+          in: query
+          description: Results per page (max 100)
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          example: 20
+      responses:
+        '200':
+          description: Paginated list of tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              example:
+                data:
+                  - id: 1
+                    title: "Write API documentation"
+                    status: in_progress
+                    priority: high
+                    due_date: "2025-02-15"
+                    assignee_id: 7
+                    project_id: 42
+                    created_at: "2025-01-10T09:00:00Z"
+                    updated_at: "2025-01-12T14:30:00Z"
+                meta:
+                  total: 47
+                  page: 1
+                  per_page: 20
+                  total_pages: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Tasks]
+      summary: Create a task
+      description: |
+        Creates a new task in the authenticated user's workspace.
+        The task is created with `status: todo` by default.
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            example:
+              title: "Review pull request #42"
+              description: "Check the new authentication module for security issues"
+              priority: high
+              due_date: "2025-02-15"
+              assignee_id: 7
+              project_id: 42
+              tags: ["security", "backend"]
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /tasks/{task_id}:
+    get:
+      tags: [Tasks]
+      summary: Get a task
+      description: Returns the full details of a single task by its ID.
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Tasks]
+      summary: Update a task
+      description: |
+        Updates one or more fields on a task. Only include fields you want to change — 
+        omitted fields remain unchanged.
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+            example:
+              status: done
+              priority: medium
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      description: Permanently deletes a task. This action cannot be undone.
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '204':
+          description: Task deleted (no content returned)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── PROJECTS ─────────────────────────────────────────────────
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List all projects
+      description: Returns all projects the authenticated user is a member of.
+      operationId: listProjects
+      parameters:
+        - name: archived
+          in: query
+          description: Include archived projects
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+
+    post:
+      tags: [Projects]
+      summary: Create a project
+      description: Creates a new project. The creator is automatically added as owner.
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+            example:
+              name: "Documentation Overhaul Q1"
+              description: "Complete API docs redesign for Q1 launch"
+              color: "#6366f1"
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # ─── USERS ───────────────────────────────────────────────────
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      description: Returns the profile and preferences of the authenticated user.
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+              example:
+                data:
+                  id: 7
+                  name: "Manish Jaiswal"
+                  email: "manish@example.com"
+                  role: admin
+                  timezone: "Asia/Kolkata"
+                  created_at: "2024-03-01T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─── WEBHOOKS ────────────────────────────────────────────────
+  /webhooks:
+    post:
+      tags: [Webhooks]
+      summary: Register a webhook
+      description: |
+        Subscribe to TaskFlow events delivered as HTTP POST requests to your endpoint.
+
+        ## Supported Events
+
+        | Event | Description |
+        |-------|-------------|
+        | `task.created` | A new task was created |
+        | `task.updated` | A task field was changed |
+        | `task.deleted` | A task was deleted |
+        | `task.completed` | A task status changed to `done` |
+        | `project.created` | A new project was created |
+
+        ## Payload Example
+
+        ```json
+        {
+          "event": "task.completed",
+          "timestamp": "2025-01-15T10:30:00Z",
+          "data": {
+            "task_id": 1,
+            "title": "Review PR #42",
+            "completed_by": 7
+          }
+        }
+        ```
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+            example:
+              url: "https://myapp.com/webhooks/taskflow"
+              events: ["task.completed", "task.created"]
+              secret: "my_webhook_signing_secret"
+      responses:
+        '201':
+          description: Webhook registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Webhook'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+# ─── COMPONENTS ──────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from `POST /auth/token`
+
+  parameters:
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      description: Unique numeric ID of the task
+      schema:
+        type: integer
+      example: 1
+
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Unique task ID
+          example: 1
+        title:
+          type: string
+          maxLength: 255
+          description: Task title
+          example: "Write API documentation"
+        description:
+          type: string
+          nullable: true
+          description: Optional detailed description (Markdown supported)
+          example: "Cover all CRUD endpoints with examples"
+        status:
+          type: string
+          enum: [todo, in_progress, done, archived]
+          description: Current task status
+          example: in_progress
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Task priority level
+          example: high
+        due_date:
+          type: string
+          format: date
+          nullable: true
+          description: Task deadline (ISO 8601 date)
+          example: "2025-02-15"
+        assignee_id:
+          type: integer
+          nullable: true
+          description: ID of the assigned user
+          example: 7
+        project_id:
+          type: integer
+          nullable: true
+          description: ID of the parent project
+          example: 42
+        tags:
+          type: array
+          items:
+            type: string
+          description: List of freeform tags
+          example: ["documentation", "api"]
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: ISO 8601 creation timestamp
+          example: "2025-01-10T09:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: ISO 8601 last-modified timestamp
+          example: "2025-01-12T14:30:00Z"
+
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          description: Task title (required)
+        description:
+          type: string
+          description: Optional detailed description
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          default: medium
+        due_date:
+          type: string
+          format: date
+          description: Optional deadline
+        assignee_id:
+          type: integer
+          description: User ID to assign the task to
+        project_id:
+          type: integer
+          description: Project to add this task to
+        tags:
+          type: array
+          items:
+            type: string
+          description: Freeform tags
+
+    UpdateTaskRequest:
+      type: object
+      description: All fields are optional — only include fields to update
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        status:
+          type: string
+          enum: [todo, in_progress, done, archived]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        due_date:
+          type: string
+          format: date
+        assignee_id:
+          type: integer
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 42
+        name:
+          type: string
+          example: "Documentation Overhaul Q1"
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+          description: Hex color code for UI display
+          example: "#6366f1"
+        owner_id:
+          type: integer
+          readOnly: true
+          example: 7
+        task_count:
+          type: integer
+          readOnly: true
+          description: Total number of tasks in this project
+          example: 23
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        color:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+          default: "#6366f1"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 7
+        name:
+          type: string
+          example: "Manish Jaiswal"
+        email:
+          type: string
+          format: email
+          example: "manish@example.com"
+        role:
+          type: string
+          enum: [owner, admin, member, viewer]
+          example: admin
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        timezone:
+          type: string
+          example: "Asia/Kolkata"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT bearer token (valid for 60 minutes)
+        refresh_token:
+          type: string
+          description: Token to obtain a new access token
+        expires_in:
+          type: integer
+          description: Seconds until access token expires
+          example: 3600
+        token_type:
+          type: string
+          enum: [Bearer]
+
+    CreateWebhookRequest:
+      type: object
+      required: [url, events]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: HTTPS endpoint to receive event payloads
+        events:
+          type: array
+          items:
+            type: string
+            enum: [task.created, task.updated, task.deleted, task.completed, project.created]
+          minItems: 1
+          description: List of events to subscribe to
+        secret:
+          type: string
+          description: Optional HMAC signing secret to verify payloads
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 5
+        url:
+          type: string
+          example: "https://myapp.com/webhooks/taskflow"
+        events:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+          default: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of matching records
+          example: 47
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        per_page:
+          type: integer
+          description: Results per page
+          example: 20
+        total_pages:
+          type: integer
+          description: Total number of pages
+          example: 3
+
+    Problem:
+      type: object
+      description: RFC 7807 Problem Details
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://api.taskflow.io/errors/not-found"
+        title:
+          type: string
+          example: "Resource Not Found"
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: "Task with ID 999 does not exist"
+        instance:
+          type: string
+          format: uri
+          example: "/tasks/999"
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token is invalid/expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://api.taskflow.io/errors/unauthorized"
+            title: "Unauthorized"
+            status: 401
+            detail: "Your access token is missing or has expired."
+
+    BadRequest:
+      description: The request body is malformed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://api.taskflow.io/errors/bad-request"
+            title: "Bad Request"
+            status: 400
+            detail: "Request body is not valid JSON."
+
+    NotFound:
+      description: The requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://api.taskflow.io/errors/not-found"
+            title: "Not Found"
+            status: 404
+            detail: "Task with ID 999 does not exist."
+
+    ValidationError:
+      description: Input validation failed
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Problem'
+              - type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+          example:
+            type: "https://api.taskflow.io/errors/validation"
+            title: "Validation Failed"
+            status: 422
+            detail: "One or more fields are invalid."
+            errors:
+              title: ["can't be blank", "is too long (max 255 chars)"]
+              due_date: ["must be a future date"]

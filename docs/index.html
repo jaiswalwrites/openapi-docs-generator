@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow API Reference | v1.2.0</title>
+  <meta name="description" content="Complete API reference for the TaskFlow REST API — tasks, projects, users, webhooks. Interactive documentation generated from OpenAPI 3.0 spec." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Redoc CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
+  <style>
+    :root {
+      --brand: #6366f1;
+      --brand-dark: #4f46e5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0e1a;
+      color: #f1f5f9;
+    }
+
+    /* Top banner */
+    .top-banner {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .banner-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .banner-logo {
+      font-size: 1.5rem;
+    }
+
+    .banner-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .banner-subtitle {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .banner-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .banner-links a {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 14px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .banner-links a:hover {
+      background: rgba(255,255,255,0.15);
+      color: white;
+    }
+
+    /* Redoc container */
+    #redoc-container {
+      min-height: calc(100vh - 60px);
+    }
+
+    /* Attribution footer */
+    .attribution {
+      background: #050810;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .attribution p {
+      font-size: 0.8rem;
+      color: #475569;
+    }
+
+    .attribution a {
+      color: #6366f1;
+      text-decoration: none;
+    }
+
+    .attribution a:hover { text-decoration: underline; }
+
+    .spec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: #a5b4fc;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-banner">
+    <div class="banner-brand">
+      <span class="banner-logo">📋</span>
+      <div>
+        <div class="banner-title">TaskFlow API Reference</div>
+        <div class="banner-subtitle">REST API v1.2.0 · Generated from OpenAPI 3.0 Spec</div>
+      </div>
+    </div>
+    <div class="banner-links">
+      <a href="../openapi.yaml" download>⬇ Download Spec</a>
+      <a href="../../ai-doc-workflow/">⚡ AI Workflow</a>
+      <a href="https://github.com/jaiswalwrites" target="_blank">GitHub →</a>
+    </div>
+  </div>
+
+  <div id="redoc-container"></div>
+
+  <div class="attribution">
+    <p>
+      API documentation generated from <a href="../openapi.yaml">openapi.yaml</a> using 
+      <a href="https://redocly.com" target="_blank">Redoc</a> ·
+      Portfolio project by <a href="https://github.com/jaiswalwrites" target="_blank">Manish Jaiswal</a>
+    </p>
+    <span class="spec-badge">📄 OpenAPI 3.0.3</span>
+  </div>
+
+  <script>
+    Redoc.init(
+      '../openapi.yaml',
+      {
+        theme: {
+          colors: {
+            primary: { main: '#6366f1' },
+            success: { main: '#10b981' },
+            warning: { main: '#f59e0b' },
+            error: { main: '#ef4444' },
+            tonalOffset: 0.2,
+          },
+          sidebar: {
+            backgroundColor: '#0d1117',
+            textColor: '#e2e8f0',
+            activeTextColor: '#818cf8',
+            arrow: {
+              size: '1.5em',
+              color: '#6366f1',
+            },
+          },
+          rightPanel: {
+            backgroundColor: '#0f172a',
+            textColor: '#e2e8f0',
+          },
+          typography: {
+            fontSize: '15px',
+            lineHeight: '1.65',
+            fontFamily: "'Inter', system-ui, sans-serif",
+            headings: {
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontWeight: '700',
+            },
+            code: {
+              fontSize: '13px',
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              color: '#a5b4fc',
+              backgroundColor: '#1e293b',
+              wrap: true,
+            },
+          },
+          schema: {
+            defaultDetailsWidth: '75%',
+            typeNameColor: '#06b6d4',
+            typeTitleColor: '#8b5cf6',
+            requireLabelColor: '#ef4444',
+            labelsTextSize: '0.85em',
+            nestingSpacing: '1.2em',
+            nestedBackground: '#111827',
+          },
+          codeBlock: {
+            backgroundColor: '#0f172a',
+          },
+          breakpoints: {
+            medium: '65rem',
+            large: '90rem',
+          },
+        },
+        hideDownloadButton: false,
+        disableSearch: false,
+        expandDefaultServerVariables: true,
+        pathInMiddlePanel: false,
+        nativeScrollbars: false,
+        scrollYOffset: 60,
+        showObjectSchemaExamples: true,
+        untrustedSpec: false,
+        hideLoading: false,
+      },
+      document.getElementById('redoc-container')
+    );
+  </script>
+</body>
+</html>
