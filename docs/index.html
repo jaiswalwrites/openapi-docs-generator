@@ -148,8 +148,14 @@
   </div>
 
   <script>
+    // Dynamically construct spec path based on window.location to support both local and subpath hosting
+    var specUrl = '../openapi.yaml';
+    if (window.location.hostname.endsWith('github.io')) {
+      specUrl = '/openapi-docs-generator/openapi.yaml';
+    }
+
     Redoc.init(
-      '../openapi.yaml',
+      specUrl,
       {
         theme: {
           colors: {
@@ -157,6 +163,17 @@
             success: { main: '#10b981' },
             warning: { main: '#f59e0b' },
             error: { main: '#ef4444' },
+            text: {
+              primary: '#f1f5f9',
+              secondary: '#94a3b8',
+            },
+            background: {
+              main: '#0a0e1a',
+            },
+            border: {
+              dark: '#1e293b',
+              light: '#1e293b',
+            },
             tonalOffset: 0.2,
           },
           sidebar: {
