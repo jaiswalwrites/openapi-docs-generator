@@ -4,15 +4,30 @@ info:
   description: |
     # TaskFlow REST API
 
-    The TaskFlow API lets you manage tasks, projects, and team members programmatically.
-    All API endpoints are authenticated using **Bearer tokens** or **API keys**.
+    Welcome to the TaskFlow API Reference! This interactive portal demonstrates spec-first API design, technical documentation strategy, and robust information architecture.
 
-    ## Authentication
+    ---
 
-    Include your API key in every request:
-    ```
-    Authorization: Bearer YOUR_API_TOKEN
-    ```
+    ## 🚀 Recruiter & Developer Onboarding Guide
+
+    If you are evaluating this documentation for **Technical Writing**, **AI Integration**, or **Developer Experience (DX)** roles, here is a quick guide to what you can do on this page:
+
+    ### 1. How to Navigate this Reference
+    * **Left Sidebar:** Browse endpoints grouped by resource categories: *Authentication*, *Tasks*, *Projects*, *Users*, and *Webhooks*.
+    * **Center Column:** Read detailed endpoint summaries, parameter validation rules, constraints, and error response standards.
+    * **Right Column:** View real-world JSON request templates, response schemas, and copy-pasteable `curl` code snippets.
+
+    ### 2. Key Technical Standards to Review
+    * **RFC 7807 Error Modeling:** Check the response format of any error code (like `400 BadRequest` or `404 NotFound`). They follow the **RFC 7807 Problem Details** specification (`Problem` schema) for structured API error reporting.
+    * **Real-world Schemas:** Click on schema properties (like `due_date` or `status`) to see strict types, enums, format validations, and examples.
+    * **Webhooks & Subscriptions:** View `POST /webhooks` to see how event subscriptions and event payloads are documented for developers.
+    * **Documentation Style Guide:** Read the strict rules (MUST/SHOULD definitions) that govern the writing in this spec in the [style-guide.md](../style-guide.md).
+
+    ### 3. Quick Actions
+    * **Download Specification:** Click **⬇ Download Spec** in the top banner to view or download the raw YAML file.
+    * **Instant Search:** Use the search bar in the top-left to query endpoints, parameters, or schemas by name.
+
+    ---
 
     ## Base URL
 
